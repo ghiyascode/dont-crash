@@ -1,0 +1,17 @@
+# Dependencies for the CARLA PythonAPI example scripts and the `agents`
+# navigation package. ScenarioRunner's own dependencies are installed
+# separately from scenario_runner/requirements.txt.
+#
+# Shared packages are pinned to the same versions ScenarioRunner v0.9.16 pins,
+# so the two files can be installed in either order without conflicts.
+numpy==1.24.4
+networkx==3.4.2
+Shapely==2.1.1
+pygame
+matplotlib
+Pillow
+future
+
+# Optional, for specific examples only:
+# open3d       # open3d_lidar.py
+# invertedai@git+https://github.com/inverted-ai/invertedai.git@develop   # invertedai_traffic.py

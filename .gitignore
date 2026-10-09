@@ -1,0 +1,49 @@
+# --- CARLA simulator (NEVER commit — ~21 GB, downloaded per-machine) ---
+CARLA_*/
+carla-sim/
+scenario_runner/
+*.tar.gz
+AdditionalMaps_*/
+
+# --- Downloaded / generated artifacts ---
+downloads/
+logs/
+*.log
+*.png
+*.jpg
+*.mp4
+frame*.png
+_out/
+output/
+
+# --- ML model weights / checkpoints (large binaries belong in Releases/LFS) ---
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+*.h5
+*.pkl
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Conda / virtual envs ---
+.venv/
+venv/
+env/
+miniforge3/
+miniconda3/
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
