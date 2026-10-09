@@ -58,8 +58,9 @@ The installer:
 5. Clones ScenarioRunner v0.9.16.
 6. Creates the `carla` conda environment and installs the CARLA client and
    dependencies.
-7. Installs PyTorch 2.8.0: the CUDA build on NVIDIA GPUs, the CPU build
-   otherwise. For ROCm on AMD GPUs, see [PyTorch (GPU)](#pytorch-gpu).
+7. Installs PyTorch 2.8.0: the CUDA build on NVIDIA GPUs, the XPU build on
+   Intel Arc GPUs (Windows), the CPU build otherwise. For ROCm on AMD GPUs, see
+   [PyTorch (GPU)](#pytorch-gpu).
 8. Installs ROS 2 Humble, if requested (Linux).
 9. Installs the helper scripts into the install folder.
 10. Starts CARLA headless and runs the smoke test.
@@ -86,7 +87,7 @@ cd $env:USERPROFILE\carla-sim          # Windows, in each new PowerShell window
 | `--dir PATH` | `-Dir PATH` | Install location. Default: `~/carla-sim` or `%USERPROFILE%\carla-sim`. |
 | `--env NAME` | `-EnvName NAME` | Conda environment name. Default: `carla`. |
 | `--no-maps` | `-NoMaps` | Skip the additional maps (Town06, Town07, Town11, Town12, Town13, Town15). |
-| `--torch MODE` | `-Torch MODE` | PyTorch build: `auto` (default), `cuda`, `cpu`, or `none`. |
+| `--torch MODE` | `-Torch MODE` | PyTorch build: `auto` (default), `cuda`, `xpu` (Intel Arc; Windows only), `cpu`, or `none`. |
 | `--no-torch` | `-NoTorch` | Same as `--torch none`. |
 | `--with-ros2` | — | Also install ROS 2 Humble in a separate environment (Linux only). |
 | `--ros-env NAME` | — | ROS 2 environment name. Default: `ros_humble`. |
@@ -145,14 +146,16 @@ native ROS 2 support in the server.
 | | Minimum | Recommended |
 |---|---|---|
 | OS | Windows 10/11, or Ubuntu 20.04/22.04 (Fedora supported) | — |
-| GPU | Dedicated NVIDIA or AMD GPU, 8 GB VRAM | NVIDIA RTX 2070+ / AMD RX 6000–7000 |
+| GPU | Dedicated NVIDIA or AMD GPU, 8 GB VRAM (Intel Arc: untested with CARLA) | NVIDIA RTX 2070+ / AMD RX 6000–7000 |
 | Disk | 60 GB free during installation; 38 GB after the downloaded archives are deleted (35 GB and 27 GB without the additional maps) | SSD |
 | RAM | 16 GB | 32 GB+ |
 | Network | TCP ports 2000–2001 open (CARLA RPC) | Wired connection for the initial download |
 
-CARLA renders through Vulkan and runs on both NVIDIA and AMD GPUs; a working GPU
-driver and the Vulkan loader are required. The PyTorch/CUDA step is
-NVIDIA-specific; AMD GPUs use the ROCm path described in
+CARLA renders through Vulkan on Linux and through DirectX 12 on Windows (Vulkan
+with the `-vulkan` server flag), and runs on both NVIDIA and AMD GPUs. A working
+GPU driver is required, and on Linux the Vulkan loader. Intel Arc GPUs have not
+been tested with CARLA. The PyTorch/CUDA step is NVIDIA-specific; AMD GPUs use
+the ROCm path and Intel Arc GPUs the XPU build described in
 [PyTorch (GPU)](#pytorch-gpu). Integrated graphics are not supported.
 
 ## Prerequisites
@@ -339,8 +342,8 @@ pip install torch==2.8.0 torchvision==0.23.0 \
 
 ### AMD
 
-CARLA, ScenarioRunner, the example scripts, and ROS 2 run unchanged on AMD GPUs
-through Vulkan. Only PyTorch differs: the cu128 build is CUDA (NVIDIA-only) and
+CARLA, ScenarioRunner, the example scripts, and ROS 2 run unchanged on AMD GPUs.
+Only PyTorch differs: the cu128 build is CUDA (NVIDIA-only) and
 reports `cuda.is_available() = False` on AMD hardware. AMD uses ROCm instead.
 Options, in order of preference:
 
@@ -362,6 +365,29 @@ Options, in order of preference:
 - **Remote training.** Run the simulator on the AMD machine and perform GPU
   training on an NVIDIA machine. The simulator and the training process do not
   need to run on the same host.
+
+### Intel Arc (Windows)
+
+CARLA has not been tested on Intel Arc GPUs. On an 8 GB card, reduce video
+memory use with `.\launch_carla.ps1 -Mode lowgfx`, or add `-quality-level=Low`
+to a windowed launch.
+
+PyTorch provides XPU builds for Arc A- and B-series GPUs, validated on
+Windows 11. The installer selects this build on Arc GPUs (`-Torch xpu`). To
+install it manually, with the `carla` environment active:
+```powershell
+pip install torch==2.8.0+xpu torchvision==0.23.0+xpu --index-url https://download.pytorch.org/whl/xpu
+```
+The `+xpu` suffix is required when another 2.8.0 build is already installed;
+without it, pip reports the requirement as already satisfied and changes
+nothing.
+
+Verify:
+```powershell
+python -c "import torch; print(torch.xpu.is_available(), torch.xpu.get_device_name(0))"
+```
+If `torch.xpu.is_available()` is `False`, update the Intel Arc driver; see
+[Getting Started on Intel GPU](https://docs.pytorch.org/docs/2.8/notes/get_start_xpu.html).
 
 ## ROS 2 (optional)
 

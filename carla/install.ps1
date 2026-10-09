@@ -16,7 +16,7 @@ param(
     [string]$Dir = (Join-Path $env:USERPROFILE "carla-sim"),
     [string]$EnvName = "carla",
     [switch]$NoMaps,
-    [ValidateSet("auto", "cuda", "cpu", "none")]
+    [ValidateSet("auto", "cuda", "xpu", "cpu", "none")]
     [string]$Torch = "auto",
     [switch]$NoTorch,
     [switch]$NoSmokeTest,
@@ -57,8 +57,9 @@ Options:
   -Dir PATH          Install location (default: %USERPROFILE%\carla-sim)
   -EnvName NAME      Conda environment name (default: carla)
   -NoMaps            Skip the additional maps (saves ~18 GB)
-  -Torch MODE        PyTorch build: auto, cuda, cpu, or none (default: auto;
-                     cuda on NVIDIA GPUs, cpu otherwise)
+  -Torch MODE        PyTorch build: auto, cuda, xpu, cpu, or none (default:
+                     auto; cuda on NVIDIA GPUs, xpu on Intel Arc GPUs, cpu
+                     otherwise)
   -NoTorch           Same as -Torch none
   -NoSmokeTest       Skip the final smoke test
   -RemoveArchives    Delete the downloaded archives after extraction
@@ -149,14 +150,21 @@ if ((Get-Command nvidia-smi -ErrorAction SilentlyContinue) -and ((& nvidia-smi -
 } elseif ($gpuNames -match "NVIDIA") {
     $Gpu = "nvidia"
     Warn "NVIDIA GPU detected but nvidia-smi is not working. Install the NVIDIA driver; CARLA cannot render without it."
+} elseif ($gpuNames -match "Arc.* (Pro )?[AB]\d{2,3}") {
+    # Discrete Arc cards carry an A- or B-series model number (A770, B580).
+    # Core Ultra integrated graphics are also named "Intel(R) Arc(TM) Graphics"
+    # (or "Arc 140V"), so they do not match. Checked before AMD because Ryzen
+    # integrated graphics ("AMD Radeon(TM) Graphics") would match that test.
+    $Gpu = "intel"
+    Info ("GPU: " + (($gpuNames -match "Arc.* (Pro )?[AB]\d{2,3}") | Select-Object -First 1) + " (Intel Arc has not been tested with CARLA)")
 } elseif ($gpuNames -match "AMD|Radeon") {
     $Gpu = "amd"
     Info ("GPU: " + (($gpuNames -match "AMD|Radeon") | Select-Object -First 1))
 }
-if ($Gpu -eq "unknown") { Warn "could not identify a dedicated GPU; CARLA requires an NVIDIA or AMD GPU with Vulkan support" }
+if ($Gpu -eq "unknown") { Warn "could not identify a dedicated GPU; CARLA requires a dedicated NVIDIA, AMD, or Intel Arc GPU" }
 
 if ($Torch -eq "auto") {
-    $Torch = if ($Gpu -eq "nvidia") { "cuda" } else { "cpu" }
+    $Torch = switch ($Gpu) { "nvidia" { "cuda" } "intel" { "xpu" } default { "cpu" } }
     Info "PyTorch build: $Torch (auto-selected)"
 }
 
@@ -374,22 +382,27 @@ $TorchResult = "not installed"
 if ($Torch -eq "none") {
     Info "Skipped"
 } else {
-    $check = "import sys, torch; ok = torch.__version__.startswith('$TorchVersion') and ((torch.version.cuda is not None) == ('$Torch' == 'cuda')); sys.exit(0 if ok else 1)"
+    $check = "import sys, torch; ok = torch.__version__.startswith('$TorchVersion') and ((torch.version.cuda is not None) == ('$Torch' == 'cuda')) and ((torch.version.xpu is not None) == ('$Torch' == 'xpu')); sys.exit(0 if ok else 1)"
     Invoke-Quiet { & $Py -c $check }
     if ($LASTEXITCODE -eq 0) {
         Info "PyTorch $TorchVersion ($Torch) already installed"
     } else {
-        # On Windows the CUDA libraries are bundled in the torch wheel, so the
-        # pypi.nvidia.com fallback used on Linux is not needed.
-        $index = if ($Torch -eq "cuda") { "$TorchIndex/cu128" } else { "$TorchIndex/cpu" }
+        # On Windows the CUDA and Intel GPU libraries come with the wheels, so
+        # the pypi.nvidia.com fallback used on Linux is not needed. The +build
+        # suffix makes pip replace an installed torch of another build; a plain
+        # ==2.8.0 is already satisfied by 2.8.0+cpu, for example.
+        $build = @{ cuda = "cu128"; xpu = "xpu"; cpu = "cpu" }[$Torch]
         Invoke-Checked "PyTorch install" {
-            & $Py -m pip install --disable-pip-version-check "torch==$TorchVersion" "torchvision==$TorchvisionVersion" --index-url $index
+            & $Py -m pip install --disable-pip-version-check "torch==$TorchVersion+$build" "torchvision==$TorchvisionVersion+$build" --index-url "$TorchIndex/$build"
         }
     }
-    $TorchResult = & $Py -c "import torch; print(f'{torch.__version__}, CUDA available: {torch.cuda.is_available()}')"
+    $accel = if ($Torch -eq "xpu") { "XPU" } else { "CUDA" }
+    $TorchResult = & $Py -c "import torch; print(f'{torch.__version__}, $accel available: {torch.$($accel.ToLower()).is_available()}')"
     Info "PyTorch $TorchResult"
-    if ($Torch -eq "cuda" -and $TorchResult -notmatch "CUDA available: True") {
+    if ($Torch -eq "cuda" -and $TorchResult -notmatch "available: True") {
         Warn "PyTorch was installed but cannot see the GPU; check the NVIDIA driver"
+    } elseif ($Torch -eq "xpu" -and $TorchResult -notmatch "available: True") {
+        Warn "PyTorch was installed but cannot see the GPU; update the Intel Arc driver (PyTorch's Intel GPU support is validated on Windows 11)"
     }
 }
 
