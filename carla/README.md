@@ -85,7 +85,7 @@ cd $env:USERPROFILE\carla-sim          # Windows, in each new PowerShell window
 |---|---|---|
 | `--dir PATH` | `-Dir PATH` | Install location. Default: `~/carla-sim` or `%USERPROFILE%\carla-sim`. |
 | `--env NAME` | `-EnvName NAME` | Conda environment name. Default: `carla`. |
-| `--no-maps` | `-NoMaps` | Skip the additional maps (Town06, Town07, Town11, Town12, TownBig). |
+| `--no-maps` | `-NoMaps` | Skip the additional maps (Town06, Town07, Town11, Town12, Town13, Town15). |
 | `--torch MODE` | `-Torch MODE` | PyTorch build: `auto` (default), `cuda`, `cpu`, or `none`. |
 | `--no-torch` | `-NoTorch` | Same as `--torch none`. |
 | `--with-ros2` | — | Also install ROS 2 Humble in a separate environment (Linux only). |
@@ -479,8 +479,10 @@ Change the map or weather:
 python $CARLA_ROOT/PythonAPI/util/config.py --list
 python $CARLA_ROOT/PythonAPI/util/config.py --map Town03
 ```
-Installed maps: Town01–07, Town10HD (each with an `_Opt` layered variant), and
-the large maps Town11, Town12, and TownBig.
+Installed maps: Town01–07, Town10HD (each with an `_Opt` layered variant),
+Town15, and the tiled large maps Town11, Town12, and Town13. On Windows, loading
+Town11, Town12, or Town13 crashes the server; see
+[Troubleshooting](#troubleshooting).
 
 ## Running a scenario
 
@@ -725,6 +727,7 @@ conflict.
 | PowerShell will not run `install.ps1` | Start it with `powershell -ExecutionPolicy Bypass -File .\install.ps1`. |
 | `can't open file '/PythonAPI/...'` | `$CARLA_ROOT` is unset; the environment was not sourced. The shell prompt should read `(carla)`. Source `setup_env`. |
 | `ModuleNotFoundError: No module named 'pygame'` | Example dependencies not installed. Run `pip install -r setup/requirements-examples.txt`. |
+| Windows: the server closes with `EXCEPTION_ACCESS_VIOLATION` while loading Town11, Town12, or Town13 | A crash inside the CARLA 0.9.16 server when it loads the tiled large maps, observed on Windows with an RTX 5090. The map files extract intact and memory is not exhausted, so the installation is not the cause. Use the other maps, including Town15. Not yet checked on Linux. Crash reports are saved in `%LOCALAPPDATA%\CarlaUE4\Saved\Crashes`. |
 | Client reports connection refused | The server is still starting (20–30 s). Check the port with `ss -ltn \| grep 2000` (Linux) or `netstat -an \| findstr 2000` (Windows) and retry once it is listening. |
 | `conda` not recognized in PowerShell, or `setup_env.ps1` warns that conda is unavailable | Run `conda init powershell` once from the Miniforge Prompt, then open a new PowerShell window. |
 | `torch.cuda.is_available()` returns `False` | GPU driver too old, or a CPU-only build was installed. Reinstall with the cu128 index. RTX 50-series requires cu128. On AMD, use the ROCm path. |
