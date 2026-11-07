@@ -5,8 +5,8 @@ CARLA 0.9.16 smoke test.
 Connects to a running CARLA server, prints the client/server versions, loads a
 town, spawns a vehicle with an attached RGB camera, ticks the world in
 synchronous mode, and saves one rendered frame to disk. If the PNG lands and is
-non-trivial in size, the GPU render path (Vulkan + NVIDIA) and the Python API
-are both working end-to-end.
+non-trivial in size, the GPU render path and the Python API are both working
+end-to-end.
 
 Usage (server must already be running):
     python carla_smoketest.py --host 127.0.0.1 --port 2000 --out frame.png

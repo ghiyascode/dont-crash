@@ -31,8 +31,7 @@ rather than recreating them. Testing is conducted entirely in simulation.
 
 ## System architecture
 
-The platform is organized into three stages (Figure 1 of the
-[Project Charter](docs/Project_Charter.pdf)):
+The platform is organized into three stages:
 
 | Stage | Components | Function |
 |---|---|---|
@@ -60,11 +59,12 @@ All foundational software is open source and requires no commercial licensing.
 ```
 .
 ├── README.md            Project overview
-├── docs/                Formal deliverables
-│   ├── README.md        Deliverables index and status
-│   └── Project_Charter.pdf
 └── carla/               Simulation environment (self-contained)
-    ├── README.md        Setup guide: Linux and Windows, NVIDIA and AMD
+    ├── README.md        Start here: install, first run, troubleshooting
+    ├── USAGE.md         Commands and recipes for Linux and Windows
+    ├── ASSETS.md        Maps, weather, vehicles, scenarios, and more
+    ├── INSTALL.md       Installer details, manual steps, PyTorch, ROS 2
+    ├── README_old.md    The original single-page guide (archived)
     ├── install.sh       One-command installer (Linux)
     ├── install.ps1      One-command installer (Windows)
     └── setup/           Helper scripts, requirements, smoke tests
@@ -80,9 +80,10 @@ cd carla && ./install.sh                                      # Linux
 cd carla; powershell -ExecutionPolicy Bypass -File .\install.ps1   # Windows
 ```
 
-See [`carla/README.md`](carla/README.md) for requirements, installer options,
-the equivalent manual steps, PyTorch on NVIDIA and AMD GPUs, optional ROS 2, and
-running CARLA and scenarios.
+See [`carla/README.md`](carla/README.md) to install and run CARLA,
+[`carla/USAGE.md`](carla/USAGE.md) for maps, weather, vehicles, traffic, and
+scenarios, and [`carla/INSTALL.md`](carla/INSTALL.md) for installer options,
+the equivalent manual steps, PyTorch on NVIDIA and AMD GPUs, and optional ROS 2.
 
 ## Team
 
@@ -117,7 +118,5 @@ rotating among members.
 
 ## Documentation
 
-Formal deliverables are in [`docs/`](docs/); see the
-[deliverables index](docs/README.md) for the complete list and status. The
-`carla/` module satisfies the Installation Scripts deliverable and contributes
-to the User Manual.
+The `carla/` module satisfies the Installation Scripts deliverable and
+contributes to the User Manual.
